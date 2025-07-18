@@ -6,15 +6,13 @@ It also replaces `’` (`U+2019`) to `Ά` (`U+0386`), which is a widely known pr
 If you are someone who likes to write subtitles please switch your Windows to English and only use UTF-8.
 
 # How
-To compile
 
+To compile
 ```shell
 cargo build --release
 ```
 
-Executable is found at `./target/release/greek-sub-fixer.exe`
-
-To convert a file pass it as an argument to the executable ie
+To fix `.srt` files in a directory pass it as an argument to the executable (doesn't support recursive searching for files in the directory for now):
 ```shell
-greek-sub-fixer.exe subs.srt
+greek-sub-fixer path/to/subs
 ```
