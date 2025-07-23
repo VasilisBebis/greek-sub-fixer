@@ -12,7 +12,7 @@ To compile
 cargo build --release
 ```
 
-To fix `.srt` files in a directory pass it as an argument to the executable (doesn't support recursive searching for files in the directory for now):
-```shell
-greek-sub-fixer path/to/subs
+To display help page
+```
+greek-sub-fixer -h
 ```

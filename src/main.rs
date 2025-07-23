@@ -1,29 +1,19 @@
 use std::env;
-use std::fs::{self, File};
-use encoding::{Encoding, DecoderTrap};
-use encoding::all::ISO_8859_7;
-use std::io::{Write, Result};
-use std::path::{PathBuf, Path};
-use std::ffi::OsStr;
+use std::io::Result;
+pub mod cli_app;
 
-fn fix_sub_file(sub_file: &Path) -> Result<()> {
-    let subs: Vec<u8> = fs::read(sub_file).unwrap();
-
-    let utf8_subs = String::from(ISO_8859_7.decode(&subs, DecoderTrap::Replace).unwrap());
-
-    let utf8_subs = utf8_subs.replace("\u{2019}", "\u{0386}");
-    let mut file = File::create(sub_file)?;
-    file.write_all(utf8_subs.as_bytes())?;
-
-    Ok(())
-}
-
-fn main() -> Result<()>{
+fn main() -> Result<()> {
     let mut arguments = env::args_os();
-    //TODO: do better error detection
-    assert!(arguments.len() == 2); // TODO: temporary
-    arguments.next(); // skip program name
-    let path: PathBuf = PathBuf::from(arguments.next().unwrap());
+
+    let ret = cli_app::parse_cli(&mut arguments);
+    //TODO: handle return result
+    if ret.is_err() {
+        Ok(())
+    } else {
+        Ok(())
+    }
+    /* TODO: move some of this logic to cli_app.rs
+    let path: PathBuf = PathBuf::from(arguments.nth(1).unwrap());
     if !path.is_dir() {
         panic!("invalid directory provided");
     }
@@ -40,5 +30,6 @@ fn main() -> Result<()>{
             }
         }
     }
-    Ok(())
+    */
 }
+
