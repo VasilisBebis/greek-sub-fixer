@@ -1,16 +1,13 @@
 use std::env;
-use std::io::Result;
 pub mod cli_app;
 
-fn main() -> Result<()> {
+fn main() {
     let mut arguments = env::args_os();
 
     let ret = cli_app::parse_cli(&mut arguments);
     //TODO: handle return result
-    if ret.is_err() {
-        Ok(())
-    } else {
-        Ok(())
+    if let Err(error) = ret {
+        println!("{error}");
     }
     /* TODO: move some of this logic to cli_app.rs
     let path: PathBuf = PathBuf::from(arguments.nth(1).unwrap());

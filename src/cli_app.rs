@@ -1,9 +1,8 @@
-use std::io::{Error, ErrorKind};
 use std::fs::{self, File};
-use encoding::{Encoding, DecoderTrap};
-use encoding::all::ISO_8859_7;
-use std::io::{Write, Result};
+use encoding::DecoderTrap;
+use std::io::Write;
 use std::path::Path;
+use chardet;
 
 
 const YELLOW_BOLD_UNDERLINE: &str    = "\x1b[1;4;33m";
@@ -26,13 +25,7 @@ pub fn print_help() {
     println!("  {:<20} Show help page and exit.", "-h, --help");
 }
 
-pub fn parse_cli(exec_string: &mut std::env::ArgsOs) -> std::io::Result<()> {
-    let bin_name = if cfg!(windows) {
-        "greek-sub-fixer.exe"
-    } else {
-        "greek-sub-fixer"
-    };
-
+pub fn parse_cli(exec_string: &mut std::env::ArgsOs) -> Result<(), String> {
     if exec_string.len() == 3 {
         match exec_string.nth(1).unwrap().to_str() {
             Some("-d") | Some("--dir") => {
@@ -40,41 +33,58 @@ pub fn parse_cli(exec_string: &mut std::env::ArgsOs) -> std::io::Result<()> {
                 todo!("Directory Handling");
             },
             Some("-f") | Some("--file") => {
-                println!("{:?}",exec_string.next().unwrap());
-                todo!("File Handling");
+                let result = fix_sub_file(exec_string.next().unwrap().as_ref());
+                if result.is_err() {
+                    Err(String::from(format!("{RED_BOLD}ERROR{RESET_ANSI_STYLE}: Failed to fix sub file")))
+                } else {
+                    Ok(())
+                }
             }, 
             _ => {
-                println!("{RED_BOLD}ERROR{RESET_ANSI_STYLE}: Invalid Operation");
-                println!("Use \"{bin_name} -h\" to see help page");
+                Err(String::from(format!("{RED_BOLD}ERROR{RESET_ANSI_STYLE}: invalid operation")))
             },
         }
 
-        Ok(())
     } else if exec_string.len() == 2 {
         match exec_string.nth(1).unwrap().to_str() {
-            Some("-h") | Some("--help") => print_help(),
+            Some("-h") | Some("--help") => {
+                print_help();
+                Ok(())
+            },
             _ => {
-                println!("{RED_BOLD}ERROR{RESET_ANSI_STYLE}: Invalid Operation");
-                println!("Use \"{bin_name} -h\" to see help page");
+                Err(String::from(format!("{RED_BOLD}ERROR{RESET_ANSI_STYLE}: invalid operation")))
             },
         }
-
-        Ok(())
     } else {
-
-        Err(Error::new(ErrorKind::Other, "invalid arguments"))
+        Err(String::from(format!("{RED_BOLD}ERROR{RESET_ANSI_STYLE}: invalid number of arguments provided")))
     }
 }
 
-fn fix_sub_file(sub_file: &Path) -> Result<()> {
-    let subs: Vec<u8> = fs::read(sub_file).unwrap();
+fn fix_sub_file(sub_file: &Path) -> Result<(), ()> {
+    let subs: Vec<u8> = fs::read(sub_file)
+                        .map_err(|err| 
+                                eprintln!("Could not open file {sub_file:?} because: {err}")
+                                )?;
 
-    let utf8_subs = String::from(ISO_8859_7.decode(&subs, DecoderTrap::Replace).unwrap());
-
-    let utf8_subs = utf8_subs.replace("\u{2019}", "\u{0386}");
-    let mut file = File::create(sub_file)?;
-    file.write_all(utf8_subs.as_bytes())?;
-
-    Ok(())
+    let result = chardet::detect(&subs);
+    let detected_charset = &result.0;
+    if &result.0 == "UTF-8" {
+        Ok(())
+    } else {
+        let coder = encoding::label::encoding_from_whatwg_label(chardet::charset2encoding(detected_charset));
+        if coder.is_some() {
+            let mut utf8_subs = coder.unwrap().decode(&subs, DecoderTrap::Ignore)
+                .map_err(|err| eprintln!("Decoding failed because of: {err}"))?;
+            utf8_subs = utf8_subs.replace("\u{2019}", "\u{0386}");
+            let mut file = File::create(sub_file)
+                .map_err(|err| eprintln!("Could not open file {sub_file:?} because: {err}"))?;
+            file.write_all(utf8_subs.as_bytes())
+                .map_err(|err| eprintln!("Could not write to file because: {err}"))?;
+            Ok(())
+        } else {
+            eprintln!("Encoding detection failed");
+            Err(())
+        }
+    }
 }
 

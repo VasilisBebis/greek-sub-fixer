@@ -5,14 +5,17 @@ It also replaces `’` (`U+2019`) to `Ά` (`U+0386`), which is a widely known pr
 
 If you are someone who likes to write subtitles please switch your Windows to English and only use UTF-8.
 
-# How
+# Usage
+```shell
+Usage: greek-sub-fixer [OPTION]
 
-To compile
+Options:
+  -d, --dir <path>     Specify directory to fix all contained .srt files.
+  -f, --file <path>    Specify .srt file to fix.
+  -h, --help           Show help page and exit.
+```
+
+# Build From Source
 ```shell
 cargo build --release
-```
-
-To display help page
-```
-greek-sub-fixer -h
 ```
