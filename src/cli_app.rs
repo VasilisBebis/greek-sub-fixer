@@ -1,7 +1,7 @@
 use std::fs::{self, File};
 use encoding::DecoderTrap;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use chardet;
 
 
@@ -20,7 +20,7 @@ pub fn print_help() {
     println!("{RED_BOLD_UNDERLINE}Usage{RESET_ANSI_STYLE}: {bin_name} [OPTION]");
     println!("");
     println!("{YELLOW_BOLD_UNDERLINE}Options{RESET_ANSI_STYLE}:");
-    println!("  {:<20} Specify directory to fix all contained .srt files.", "-d, --dir <path>");
+    println!("  {:<20} Specify directory to fix all contained .srt files (non-recursive).", "-d, --dir <path>");
     println!("  {:<20} Specify .srt file to fix.", "-f, --file <path>");
     println!("  {:<20} Show help page and exit.", "-h, --help");
 }
@@ -29,13 +29,38 @@ pub fn parse_cli(exec_string: &mut std::env::ArgsOs) -> Result<(), String> {
     if exec_string.len() == 3 {
         match exec_string.nth(1).unwrap().to_str() {
             Some("-d") | Some("--dir") => {
-                println!("{:?}", exec_string.next().unwrap());
-                todo!("Directory Handling");
+                let dir_path: PathBuf = PathBuf::from(exec_string.next().unwrap() /*this could also fail !?*/);
+                if !dir_path.is_dir() {
+                    Err(String::from(format!("{RED_BOLD}ERROR{RESET_ANSI_STYLE}: directory not found")))
+                } else {
+                    match dir_path.read_dir() {
+                        Err(_) => Err(String::from(format!("{RED_BOLD}ERROR{RESET_ANSI_STYLE}: failed to read directory"))),
+                        Ok(dir_iterator) => {
+                            //TODO: test to see if it can be done with while let ????
+                            for entry in dir_iterator {
+                                //TODO: tidy these nasty nested if-lets
+                                if let Ok(entry) = entry {
+                                    if let Some(extension) = entry.path().extension() {
+                                        if extension == "srt" {
+                                            let result = fix_sub_file(&entry.path());
+                                            if result.is_err() {
+                                                //TODO: make it not panic on one fail but continue with
+                                                //the rest of the files
+                                                return Err(String::from(format!("{RED_BOLD}ERROR{RESET_ANSI_STYLE}: failed to fix sub file {entry:?}")));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            Ok(())
+                        }
+                    }
+                }
             },
             Some("-f") | Some("--file") => {
-                let result = fix_sub_file(exec_string.next().unwrap().as_ref());
+                let result = fix_sub_file(exec_string.next().unwrap().as_ref() /*this could also fail !?*/);
                 if result.is_err() {
-                    Err(String::from(format!("{RED_BOLD}ERROR{RESET_ANSI_STYLE}: Failed to fix sub file")))
+                    Err(String::from(format!("{RED_BOLD}ERROR{RESET_ANSI_STYLE}: failed to fix sub file")))
                 } else {
                     Ok(())
                 }
@@ -88,3 +113,4 @@ fn fix_sub_file(sub_file: &Path) -> Result<(), ()> {
     }
 }
 
+//TODO: add recursive directory scanning as an option

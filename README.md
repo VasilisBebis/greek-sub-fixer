@@ -7,10 +7,10 @@ If you are someone who likes to write subtitles please switch your Windows to En
 
 # Usage
 ```shell
-Usage: greek-sub-fixer [OPTION]
+Usage: greek-sub-fixer[.exe] [OPTION]
 
 Options:
-  -d, --dir <path>     Specify directory to fix all contained .srt files.
+  -d, --dir <path>     Specify directory to fix all contained .srt files (non-recursive).
   -f, --file <path>    Specify .srt file to fix.
   -h, --help           Show help page and exit.
 ```
